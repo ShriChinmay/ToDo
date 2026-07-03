@@ -68,6 +68,8 @@ func todoHandler(w http.ResponseWriter, r *http.Request){
 		resp:=msgResp{
 			Message: "Task added successfully",
 		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
 		enc:=json.NewEncoder(w)
 		enc.SetIndent("", "    ")
 		err= enc.Encode(resp)
@@ -86,9 +88,13 @@ func todoHandler(w http.ResponseWriter, r *http.Request){
 		}
 		idstr:=r.URL.Query().Get("id")
 		id, err:=strconv.Atoi(idstr)
+		if (err!=nil){
+			returnError(w, "A valid ID is required", http.StatusBadRequest)
+			return
+		}
 		_, found:=db[id]
 		if (!found){
-			returnError(w, "ID is required", http.StatusBadRequest)
+			returnError(w, "Task not found", http.StatusNotFound)
 			return
 		}
 		modified:=db[id]
@@ -101,6 +107,7 @@ func todoHandler(w http.ResponseWriter, r *http.Request){
 			Message: "Modified successfully",
 		}
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
 		enc:=json.NewEncoder(w)
 		enc.SetIndent("", "    ")
 		err= enc.Encode(resp)
@@ -108,8 +115,33 @@ func todoHandler(w http.ResponseWriter, r *http.Request){
 			returnError(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 		return
-
 	}
+	if (r.Method==http.MethodDelete){
+		idstr:=r.URL.Query().Get("id")
+		id, err:=strconv.Atoi(idstr)
+		if (err!=nil){
+			returnError(w, "A valid ID is required", http.StatusBadRequest)
+			return
+		}
+		_, found:=db[id]
+		if (!found){
+			returnError(w, "Task not found", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		resp:=msgResp{
+			Message: "Deleted successfully",
+		}
+		delete(db, id)
+		enc:=json.NewEncoder(w)
+		enc.SetIndent("", "    ")
+		err= enc.Encode(resp)
+		if (err!=nil){
+			returnError(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+	}
+	returnError(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
 
 func main(){
