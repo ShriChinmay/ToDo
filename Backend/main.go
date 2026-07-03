@@ -1,16 +1,16 @@
 package main
 
-import(
-	"net/http"
+import (
 	"encoding/json"
+	"net/http"
+	"strconv"
 )
 
 var db=make(map[int] Task)
-var nextID=1
+var nextId=1
 
 type Task struct{
-	ID int `json:"id"`
-	Task string `json:"task"`
+	Taskname string `json:"task"`
 	Completed bool `json:"completed"`
 }
 
@@ -19,7 +19,7 @@ type TaskList struct{
 	Tasks map[int]Task `json:"tasks"`
 }
 
-type errResp struct{
+type msgResp struct{
 	Message string `json:"message"`
 }
 
@@ -28,7 +28,7 @@ func returnError(w http.ResponseWriter, errMsg string, code int){
 	w.WriteHeader(code)
 	enc:=json.NewEncoder(w)
 	enc.SetIndent("", "    ")
-	resp:=errResp{
+	resp:=msgResp{
 		Message: errMsg,
 	}
 	err:=enc.Encode(resp)
@@ -51,6 +51,64 @@ func todoHandler(w http.ResponseWriter, r *http.Request){
 			returnError(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 		return
+	}
+	if (r.Method==http.MethodPost){
+		newTask:=Task{}
+		err:=json.NewDecoder(r.Body).Decode(&newTask)
+		if (err!=nil){
+			returnError(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		if (len(newTask.Taskname)==0){
+			returnError(w, "Name of task is required", http.StatusBadRequest)
+			return
+		}
+		db[nextId]=newTask
+		nextId++
+		resp:=msgResp{
+			Message: "Task added successfully",
+		}
+		enc:=json.NewEncoder(w)
+		enc.SetIndent("", "    ")
+		err= enc.Encode(resp)
+		if (err!=nil){
+			returnError(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+	if (r.Method==http.MethodPut || r.Method==http.MethodPatch){
+		body:=Task{}
+		err:=json.NewDecoder(r.Body).Decode(&body)
+		if (err!=nil){
+			returnError(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		idstr:=r.URL.Query().Get("id")
+		id, err:=strconv.Atoi(idstr)
+		_, found:=db[id]
+		if (!found){
+			returnError(w, "ID is required", http.StatusBadRequest)
+			return
+		}
+		modified:=db[id]
+		if (len(body.Taskname)>0){
+			modified.Taskname=body.Taskname
+		}
+		modified.Completed=body.Completed
+		db[id]=modified
+		resp:=msgResp{
+			Message: "Modified successfully",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		enc:=json.NewEncoder(w)
+		enc.SetIndent("", "    ")
+		err= enc.Encode(resp)
+		if (err!=nil){
+			returnError(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+		return
+
 	}
 }
 
