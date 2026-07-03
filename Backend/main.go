@@ -107,7 +107,7 @@ func todoHandler(w http.ResponseWriter, r *http.Request){
 			Message: "Modified successfully",
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(http.StatusOK)
 		enc:=json.NewEncoder(w)
 		enc.SetIndent("", "    ")
 		err= enc.Encode(resp)
