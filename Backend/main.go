@@ -5,10 +5,10 @@ import(
 	"encoding/json"
 )
 
-var db map[int] Tasks
+var db=make(map[int] Task)
 var nextID=1
 
-type Tasks struct{
+type Task struct{
 	ID int `json:"id"`
 	Task string `json:"task"`
 	Completed bool `json:"completed"`
@@ -16,7 +16,7 @@ type Tasks struct{
 
 type TaskList struct{
 	Message string `json:"message"`
-	Tasks map[int]Tasks `json:"tasks"`
+	Tasks map[int]Task `json:"tasks"`
 }
 
 type errResp struct{
@@ -37,7 +37,7 @@ func returnError(w http.ResponseWriter, errMsg string, code int){
 	}
 }
 
-func taskHandler(w http.ResponseWriter, r *http.Request){
+func todoHandler(w http.ResponseWriter, r *http.Request){
 	if (r.Method==http.MethodGet){
 		w.Header().Set("Content-Type", "application/json")
 		resp:=TaskList{
@@ -55,5 +55,9 @@ func taskHandler(w http.ResponseWriter, r *http.Request){
 }
 
 func main(){
-	http.HandleFunc("/tasks", taskHandler)
+	http.HandleFunc("/todos", todoHandler)
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		panic(err)
+	}
 }
