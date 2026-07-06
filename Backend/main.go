@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"github.com/go-chi/chi/v5"
 )
 
 var db=make(map[int] Task)
@@ -145,8 +146,9 @@ func todoHandler(w http.ResponseWriter, r *http.Request){
 }
 
 func main(){
-	http.HandleFunc("/todos", todoHandler)
-	err := http.ListenAndServe(":8080", nil)
+	R:=chi.NewRouter()
+	R.HandleFunc("/todos", todoHandler)
+	err := http.ListenAndServe(":8080", R)
 	if err != nil {
 		panic(err)
 	}
