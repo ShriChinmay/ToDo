@@ -86,7 +86,7 @@ func modifyTodo (w http.ResponseWriter, r *http.Request){
 		returnError(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	idstr:=r.URL.Query().Get("id")
+	idstr:=chi.URLParam(r, "id")
 	id, err:=strconv.Atoi(idstr)
 	if (err!=nil){
 		returnError(w, "A valid ID is required", http.StatusBadRequest)
@@ -117,7 +117,7 @@ func modifyTodo (w http.ResponseWriter, r *http.Request){
 }
 
 func deleteTodo (w http.ResponseWriter, r *http.Request){
-	idstr:=r.URL.Query().Get("id")
+	idstr:=chi.URLParam(r, "id")
 	id, err:=strconv.Atoi(idstr)
 	if (err!=nil){
 		returnError(w, "A valid ID is required", http.StatusBadRequest)
@@ -141,15 +141,38 @@ func deleteTodo (w http.ResponseWriter, r *http.Request){
 	}
 }
 
+func getTodo(w http.ResponseWriter, r *http.Request){
+	idstr:=chi.URLParam(r, "id")
+	id, err:=strconv.Atoi(idstr)
+	if (err!=nil){
+		returnError(w, "Valid id required", http.StatusBadRequest)
+		return
+	}
+	todo, found:=db[id]
+	if (!found){
+		returnError(w, "ID not found", 404)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	encoder:=json.NewEncoder(w)
+	encoder.SetIndent("", "    ")
+	err= encoder.Encode(todo)
+	if (err!=nil){
+		returnError(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+}
 
 
 func main(){
 	R:=chi.NewRouter()
 	R.Get("/todos", getTodos)
 	R.Post("/todos", postTodo)
-	R.Put("/todos", modifyTodo)
-	R.Patch("/todos", modifyTodo)
-	R.Delete("/todos", deleteTodo)
+	R.Put("/todos/{id}", modifyTodo)
+	R.Patch("/todos/{id}", modifyTodo)
+	R.Delete("/todos/{id}", deleteTodo)
+	R.Get("/todos/{id}", getTodo)
 	err := http.ListenAndServe(":8080", R)
 	if err != nil {
 		panic(err)
